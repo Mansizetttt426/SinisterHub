@@ -1,0 +1,439 @@
+-- Load Orion Library
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/GRPGaming/Key-System/refs/heads/Xycer-Hub-Script/ZusumeLib(Slider)'))()
+
+-- GUI Window
+local Window = OrionLib:MakeWindow({
+    Name = "🍀Sinister Hub (BETA)🍀",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "SinisterConfig"
+})
+
+-- ESP Tab
+local ESPTab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local espFolder = Instance.new("Folder", game.CoreGui)
+espFolder.Name = "RealESP"
+
+local espEnabled = false
+local espBrightness = 255
+
+local function createESP(player)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name .. "_ESP"
+    highlight.Adornee = player.Character
+    highlight.FillColor = Color3.fromRGB(espBrightness, 50, 50)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = espFolder
+end
+
+local function clearESP()
+    for _, v in pairs(espFolder:GetChildren()) do
+        v:Destroy()
+    end
+end
+
+local function updateESP()
+    clearESP()
+    if espEnabled then
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer then
+                createESP(player)
+            end
+        end
+    end
+end
+
+ESPTab:AddToggle({
+    Name = "Enable ESP",
+    Default = false,
+    Callback = function(Value)
+        espEnabled = Value
+        updateESP()
+    end
+})
+
+ESPTab:AddSlider({
+    Name = "ESP Red Brightness",
+    Min = 0,
+    Max = 255,
+    Default = espBrightness,
+    Color = Color3.fromRGB(255, 50, 50),
+    Increment = 5,
+    ValueName = "R",
+    Callback = function(Value)
+        espBrightness = Value
+        updateESP()
+    end
+})
+
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        if espEnabled then createESP(player) end
+    end)
+end)
+
+-- Aimbot / Hitbox Tab
+local PVP = Window:MakeTab({
+    Name = "Aimbot / Hitbox",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Silent Aim
+local silentAimEnabled = false
+local aimAccuracy = 80
+
+PVP:AddToggle({
+    Name = "Enable Aimbot (Silent Aim)",
+    Default = false,
+    Callback = function(Value)
+        silentAimEnabled = Value
+    end
+})
+
+PVP:AddSlider({
+    Name = "Aimbot Accuracy",
+    Min = 0,
+    Max = 100,
+    Default = aimAccuracy,
+    Color = Color3.fromRGB(200, 200, 255),
+    Increment = 5,
+    ValueName = "%",
+    Callback = function(Value)
+        aimAccuracy = Value
+    end
+})
+
+-- Aimbox Visual
+local aimboxEnabled = false
+PVP:AddToggle({
+    Name = "Enable Aimbox Visual",
+    Default = false,
+    Callback = function(Value)
+        aimboxEnabled = Value
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character and player.Character:FindFirstChild("Head") then
+                local box = player.Character:FindFirstChild("Aimbox")
+                if box then box:Destroy() end
+                if Value then
+                    local part = Instance.new("BoxHandleAdornment", player.Character)
+                    part.Name = "Aimbox"
+                    part.Adornee = player.Character.Head
+                    part.Size = Vector3.new(2, 2, 2)
+                    part.Color3 = Color3.fromRGB(255, 255, 0)
+                    part.AlwaysOnTop = true
+                    part.ZIndex = 10
+                end
+            end
+        end
+    end
+})
+
+-- Hitbox Expander (Advanced)
+local hitboxEnabled = false
+local hitboxSize = 5
+local showHitboxVisual = true
+local hitboxAdorns = {}
+
+local function clearHitboxes()
+    for _, adorn in pairs(hitboxAdorns) do
+        if adorn and adorn.Parent then adorn:Destroy() end
+    end
+    hitboxAdorns = {}
+end
+
+local function applyHitbox(player)
+    if player == game.Players.LocalPlayer then return end
+    if not player.Character then return end
+    local parts = {"Head", "UpperTorso", "HumanoidRootPart"}
+    for _, partName in pairs(parts) do
+        local part = player.Character:FindFirstChild(partName)
+        if part and part:IsA("BasePart") then
+            part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+            part.Transparency = 0.5
+            part.CanCollide = false
+            if showHitboxVisual then
+                local adorn = Instance.new("BoxHandleAdornment")
+                adorn.Name = "HitboxAdorn"
+                adorn.Adornee = part
+                adorn.Size = part.Size
+                adorn.AlwaysOnTop = true
+                adorn.ZIndex = 10
+                adorn.Color3 = Color3.fromRGB(255, 100, 100)
+                adorn.Transparency = 0.3
+                adorn.Parent = part
+                table.insert(hitboxAdorns, adorn)
+            end
+        end
+    end
+end
+
+PVP:AddToggle({
+    Name = "Enable Hitbox Expander (Visible)",
+    Default = false,
+    Callback = function(Value)
+        hitboxEnabled = Value
+        clearHitboxes()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if hitboxEnabled then
+                applyHitbox(player)
+            else
+                local char = player.Character
+                if char then
+                    for _, partName in pairs({"Head", "UpperTorso", "HumanoidRootPart"}) do
+                        local part = char:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.Size = Vector3.new(2, 2, 1)
+                            part.Transparency = 0
+                            if part:FindFirstChild("HitboxAdorn") then
+                                part:FindFirstChild("HitboxAdorn"):Destroy()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+})
+
+PVP:AddSlider({
+    Name = "Hitbox Size",
+    Min = 2,
+    Max = 10,
+    Default = hitboxSize,
+    Color = Color3.fromRGB(255, 200, 255),
+    Increment = 1,
+    ValueName = "Studs",
+    Callback = function(Value)
+        hitboxSize = Value
+        if hitboxEnabled then
+            clearHitboxes()
+            for _, player in pairs(game.Players:GetPlayers()) do
+                applyHitbox(player)
+            end
+        end
+    end
+})
+
+PVP:AddToggle({
+    Name = "Show Hitbox Visuals",
+    Default = true,
+    Callback = function(Value)
+        showHitboxVisual = Value
+        if hitboxEnabled then
+            clearHitboxes()
+            for _, player in pairs(game.Players:GetPlayers()) do
+                applyHitbox(player)
+            end
+        end
+    end
+})
+
+-- Aura Damage
+local auraEnabled = false
+local auraRange = 10
+local auraDamage = 15
+
+PVP:AddToggle({
+    Name = "Enable Aura Damage",
+    Default = false,
+    Callback = function(Value)
+        auraEnabled = Value
+    end
+})
+
+PVP:AddSlider({
+    Name = "Aura Range",
+    Min = 2,
+    Max = 20,
+    Default = auraRange,
+    Color = Color3.fromRGB(255, 100, 100),
+    Increment = 1,
+    ValueName = "Studs",
+    Callback = function(Value)
+        auraRange = Value
+    end
+})
+
+PVP:AddSlider({
+    Name = "Aura Damage",
+    Min = 1,
+    Max = 50,
+    Default = auraDamage,
+    Color = Color3.fromRGB(255, 200, 100),
+    Increment = 1,
+    ValueName = "HP",
+    Callback = function(Value)
+        auraDamage = Value
+    end
+})
+
+-- Aura Loop
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if auraEnabled then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (player.Character.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if dist <= auraRange and player.Character:FindFirstChild("Humanoid") then
+                        player.Character.Humanoid:TakeDamage(auraDamage)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Auto Attack System
+local autoAttackEnabled = false
+local autoAttackRange = 10
+
+PVP:AddToggle({
+    Name = "Enable Auto Attack",
+    Default = false,
+    Callback = function(Value)
+        autoAttackEnabled = Value
+    end
+})
+
+PVP:AddSlider({
+    Name = "Auto Attack Range",
+    Min = 5,
+    Max = 30,
+    Default = autoAttackRange,
+    Color = Color3.fromRGB(100, 255, 100),
+    Increment = 1,
+    ValueName = "Studs",
+    Callback = function(Value)
+        autoAttackRange = Value
+    end
+})
+
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if autoAttackEnabled then
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local closest = nil
+                local closestDist = math.huge
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+                        local dist = (char.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                        if dist < autoAttackRange and dist < closestDist then
+                            closest = player
+                            closestDist = dist
+                        end
+                    end
+                end
+                if closest then
+                    local targetHum = closest.Character:FindFirstChild("Humanoid")
+                    if targetHum then
+                        targetHum:TakeDamage(10)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Movement Tab
+local Move = Window:MakeTab({
+    Name = "Speed Changer",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local walkspeed = 16
+Move:AddSlider({
+    Name = "Player Speed",
+    Min = 10,
+    Max = 100,
+    Default = walkspeed,
+    Color = Color3.fromRGB(150, 255, 150),
+    Increment = 2,
+    ValueName = "Speed",
+    Callback = function(Value)
+        walkspeed = Value
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+    end
+})
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    wait(1)
+    char:WaitForChild("Humanoid").WalkSpeed = walkspeed
+end)
+
+-- Void Rescue Tab
+local RescueTab = Window:MakeTab({
+    Name = "Void Rescue",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local autoVoidEnabled = false
+local voidYThreshold = -5
+local teleportDistance = 6
+local voidCheckInterval = 0.4
+
+RescueTab:AddToggle({
+    Name = "Enable Auto Void Rescue",
+    Default = false,
+    Callback = function(Value)
+        autoVoidEnabled = Value
+    end
+})
+
+task.spawn(function()
+    while true do
+        task.wait(voidCheckInterval)
+        if not autoVoidEnabled then continue end
+
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp.Position.Y <= voidYThreshold then
+            local closest = nil
+            local closestDist = math.huge
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (hrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < closestDist then
+                        closest = player
+                        closestDist = dist
+                    end
+                end
+            end
+            if closest and closest.Character then
+                local targetHRP = closest.Character:FindFirstChild("HumanoidRootPart")
+                if targetHRP then
+                    local direction = (targetHRP.Position - hrp.Position).Unit
+                    local newPosition = targetHRP.Position - direction * teleportDistance
+                    hrp.CFrame = CFrame.new(newPosition + Vector3.new(0, 2, 0))
+                end
+            end
+        end
+    end
+end)
+
+-- 📜 Credits Tab
+local Credits = Window:MakeTab({
+	Name = "Credits",
+	Icon = "rbxassetid://7734053494",
+	PremiumOnly = false
+})
+
+Credits:AddParagraph("🍀 Sinister Hub v1.0", "Made by Vtrisu.")
+Credits:AddParagraph("👑 Developer", "Vtrisu (aka KyraSon)")
+Credits:AddParagraph("🛠️ Fixes & Help", "Torrento (bug fixing, testing)")
+Credits:AddParagraph("💬 Join the Community", "Discord: discord.gg/F6wq7Z6vHp")
